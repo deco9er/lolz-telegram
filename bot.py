@@ -21,7 +21,7 @@ from render import format_moscow_time
 from store import DATA, Store, single_instance
 
 LOG = logging.getLogger("bot")
-VERSION = "1.3"
+VERSION = "1.3.1"
 THREAD_REFERENCE = re.compile(
     r"(?:https?://[^/\s]+/threads/(?:[^/\s]*\.)?)?([0-9]{1,15})/?(?:[?#][^\s]*)?"
 )

@@ -199,6 +199,7 @@ class Monitor:
     def sections(self, settings, *, refresh=False):
         nodes = self.forums(settings, refresh=refresh)
         automatic = discover(nodes)
+        legacy_by_role = automatic.copy()
         warnings = []
         available = {
             forum_id(node): " ".join(forum_title(node).split())
@@ -210,23 +211,36 @@ class Monitor:
         else:
             configured = settings.get("sections", automatic)
             conflicts = section_conflicts(nodes, configured)
+            configured_by_role = {}
+            for configured_id in configured.values():
+                actual_role = ROLES.get(title_key(available.get(configured_id, "")))
+                if actual_role:
+                    configured_by_role.setdefault(actual_role, set()).add(configured_id)
             selected = []
             for key, node in configured.items():
                 if key in conflicts:
-                    node = automatic.get(key)
+                    confirmed_ids = configured_by_role.get(key, set())
+                    if len(confirmed_ids) == 1:
+                        node = next(iter(confirmed_ids))
+                        source = "из сохранённых настроек"
+                    else:
+                        node = automatic.get(key)
+                        source = "из каталога"
                     warnings.append(
                         f"{NAMES[key]} · {conflicts[key]}. "
                         + (
-                            f"Использую ID {node} из каталога."
+                            f"Использую ID {node} {source}."
                             if node
                             else "Подходящий раздел в каталоге не найден."
                         )
                     )
                 if node:
                     selected.append(node)
+                    if ROLES.get(title_key(available.get(node, ""))) == key:
+                        legacy_by_role[key] = node
         sections = {}
         title_counts = Counter(map(title_key, available.values()))
-        legacy_names = {node: NAMES[key] for key, node in automatic.items()}
+        legacy_names = {node: NAMES[key] for key, node in legacy_by_role.items()}
         missing_count = 0
         for node in dict.fromkeys(selected):
             if node not in available:
